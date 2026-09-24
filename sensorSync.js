@@ -51,8 +51,8 @@ function mergeSensorSeries(existing, fresh, historyMinutes) {
 }
 
 const SENSOR_META = {
-  temperature: { name: 'Temperature (F)', location: '', type: 'temperature', unit: '°F', spec: { min: 65, max: 70 }, flag: true },
-  humidity:    { name: 'Humidity (%)',    location: '', type: 'humidity',    unit: '% RH', spec: { max: 40 },        flag: true },
+  temperature: { name: 'Temperature (F)', location: '', type: 'temperature', unit: '°F', spec: { min: 40, max: 75 }, flag: true },
+  humidity:    { name: 'Humidity (%)',    location: '', type: 'humidity',    unit: '% RH', spec: { max: 59 },        flag: true },
 };
 const SENSOR_KEYS = ['temperature', 'humidity'];
 
