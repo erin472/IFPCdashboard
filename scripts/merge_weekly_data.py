@@ -238,11 +238,15 @@ def main():
     # Explicit paths beat globbing — Downloads often holds same-day exports for
     # OTHER plants (e.g. numbered Baggers = Assemblers). ALWAYS eyeball the
     # detected filenames + device list before trusting a glob match.
-    trends = arg("--trends") or newest("Trends_All_*.xlsx", d)
-    energy = arg("--energy") or newest("All_devices_energy_calculations*.xlsx", d)
-    issues = arg("--issues") or newest("Issues_All_Devices_*.xlsx", d)
-    temp   = arg("--temp")   or newest("IFPC*Temp.xlsx", d)
-    hum    = arg("--hum")    or newest("IFPC*Humidity.xlsx", d)
+    def pick(flag, pattern):
+        v = arg(flag)
+        if v and v.lower() in ("none", "skip"): return None   # pass 'none' to skip a dataset
+        return v or newest(pattern, d)
+    trends = pick("--trends", "Trends_All_*.xlsx")
+    energy = pick("--energy", "All_devices_energy_calculations*.xlsx")
+    issues = pick("--issues", "Issues_All_Devices_*.xlsx")
+    temp   = pick("--temp",   "IFPC*Temp.xlsx")
+    hum    = pick("--hum",    "IFPC*Hum*.xlsx")
 
     for label, path in [("trends", trends), ("energy", energy), ("issues", issues), ("temp", temp), ("humidity", hum)]:
         print(f"{label}: {os.path.basename(path) if path else '(none found — skipped)'}")
