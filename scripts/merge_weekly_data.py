@@ -24,7 +24,16 @@ from datetime import datetime, timedelta
 HERE = os.path.dirname(os.path.abspath(__file__))
 HTML = os.path.join(HERE, "..", "public", "dashboard.html")
 MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-SKIP = {"Relative Humidity (%)", "Temperature (F)", "Total", "Sum"}
+SKIP = {"Relative Humidity (%)", "Temperature (F)",
+        "Can Relative Humidity (%)", "Can Temperature (F)", "Total", "Sum"}
+# Oct 2026: Bulk Hershey line installed; the original can line was renamed with a
+# "Can " prefix in Guidewheel. Old stored names are migrated so each device stays
+# one continuous series across the rename.
+RENAMES = {
+    "Metal Detector": "Can Metal Detector",
+    "Temperature (F)": "Can Temperature (F)",
+    "Relative Humidity (%)": "Can Relative Humidity (%)",
+}
 
 def newest(pattern, d):
     hits = glob.glob(os.path.join(d, pattern))
@@ -58,7 +67,8 @@ def merge_trends(src, path):
     old = {}
     for dm in re.finditer(r'\{ name: ("(?:[^"\\]|\\.)*"), group: ("(?:[^"\\]|\\.)*"), totalPct: \d+, totalHrs: ([0-9.]+), data: (\[[^\]]*\]) \}', blk):
         name = json.loads(dm.group(1)); data = json.loads(dm.group(4))
-        old[name] = {"group": json.loads(dm.group(2)), "totalHrs": float(dm.group(3)),
+        name = RENAMES.get(name, name)
+        old[name] = {"group": slug(name), "totalHrs": float(dm.group(3)),
                      "pct": {day_isos_old[i]: data[i*2] for i in range(len(day_isos_old))}}
 
     rows = sheet_rows(path, "entry")
@@ -120,7 +130,8 @@ def merge_energy(src, path):
     isos_old = json.loads(re.search(r"isoDates: (\[[^\]]*\])", blk).group(1))
     old = {}
     for dm in re.finditer(r'\{name:("(?:[^"\\]|\\.)*"),group:("(?:[^"\\]|\\.)*"),totalKwh:[0-9.]+,data:(\[[^\]]*\])\}', blk):
-        old[json.loads(dm.group(1))] = dict(zip(isos_old, json.loads(dm.group(3))))
+        _n = RENAMES.get(json.loads(dm.group(1)), json.loads(dm.group(1)))
+        old[_n] = dict(zip(isos_old, json.loads(dm.group(3))))
     rows = sheet_rows(path, "energy")
     hdr = [str(h) for h in rows[0]]
     new_days = {}
@@ -168,6 +179,8 @@ def merge_issues(src, path):
             "tta": str(r[ix[tta_key]] or ""), "action": str(r[ix["Action"]] or ""),
         })
     window_start = min(i["start"] for i in new_issues)
+    for i in old_issues:
+        i["device"] = RENAMES.get(i["device"], i["device"])
     kept = [i for i in old_issues if i["start"] < window_start]
     issues = sorted(new_issues + kept, key=lambda i: i["start"], reverse=True)
     block = "var issuesData = " + json.dumps(issues, ensure_ascii=False, separators=(",", ":")) + ";"
